@@ -1,0 +1,30 @@
+{{- define "geth-init-container" -}}
+- name: init-geth
+  env:
+    - name: ACCOUNT_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: {{ .Values.global.ethParameters.existingSecret | default "geth-secret" }}
+          key: ACCOUNT_PASSWORD
+  image: "{{ .Values.global.image.repository }}:{{ .Values.global.image.tag }}"
+  command: ['sh', '-c', '
+    if [ -f ~/.ethereum/go-eth-initialized ]; then
+      echo "go-ethereum has already been initialized";
+    elif echo "Initializing go-ethereum..." \
+      && geth init /tmp/genesis.json \
+      && rm -f ~/.ethereum/geth/nodekey \
+      && echo -n ${ACCOUNT_PASSWORD} > /tmp/password && echo \
+      && geth account new --password /tmp/password \
+      && rm -f /tmp/password \
+      && touch ~/.ethereum/go-eth-initialized; then
+      echo "Ethereum initialization process completed successfully";
+    else
+      echo "Ethereum initialization process failed";
+      exit 1;
+    fi
+  ']
+  volumeMounts:
+    - name: geth-config
+      mountPath: /tmp/genesis.json
+      subPath: genesis.json
+{{- end -}}

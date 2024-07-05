@@ -1,0 +1,84 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: geth-rpc-endpoint
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- toYaml .Values.global.labels | nindent 4 }}
+spec:
+  updateStrategy:
+    type: RollingUpdate
+  serviceName: geth-bootnode
+  replicas: {{ .Values.rpc.replicaCount }}
+  selector:
+    matchLabels:
+      app: geth-rpc-endpoint
+  template:
+    metadata:
+      labels:
+        app: geth-rpc-endpoint
+    spec:
+      initContainers:
+        {{- include "geth-init-container" . | nindent 8 }}
+            - name: geth-rpc-pvc
+              mountPath: /root/.ethereum
+        - name: wait-for-bootnode
+          image: alpine:3.12
+          command: ['sh', '-c', '
+            while ! nc -z -v -w10 geth-bootnode.{{ .Values.global.namespace }}.svc.cluster.local 30303; do
+              echo "Waiting for geth-bootnode to be ready";
+              sleep 2;
+            done
+          ']
+      containers:
+        - name: geth-rpc-endpoint
+          image: "{{ .Values.global.image.repository }}:{{ .Values.global.image.tag }}"
+          command:
+            - "geth"
+          args:
+            - "--bootnodes=enode://$(ENODE)@geth-bootnode.{{ .Values.global.namespace }}.svc.cluster.local:30303"
+            - "--allow-insecure-unlock"
+            - "--http"
+            - "--http.addr=0.0.0.0"
+            - "--http.api=eth,web3,net,admin,personal,debug"
+            - "--http.corsdomain=*"
+            - "--networkid=$(NETWORK_ID)"
+            - "--rpcvhosts=*"
+          ports:
+            - containerPort: 8545
+              name: http
+              protocol: TCP
+          envFrom:
+            - secretRef:
+                name: {{ .Values.global.ethParameters.existingSecret | default "geth-secret" }}
+          volumeMounts:
+            - name: geth-rpc-pvc
+              mountPath: /root/.ethereum
+          resources:
+            {{- toYaml .Values.rpc.resources | nindent 12 }}
+      volumes:
+        - name: geth-config
+          configMap:
+            name: geth-config
+      {{- if .Values.rpc.nodeSelector }}
+      nodeSelector:
+        {{- toYaml .Values.rpc.nodeSelector | nindent 8 }}
+      {{- end }}
+      {{- if .Values.rpc.affinity }}
+      affinity:
+        {{- toYaml .Values.rpc.affinity | nindent 8 }}
+      {{- end }}
+      {{- if .Values.rpc.tolerations }}
+      tolerations:
+        {{- toYaml .Values.rpc.tolerations | nindent 8 }}
+      {{- end }}
+  volumeClaimTemplates:
+    - metadata:
+        name: geth-rpc-pvc
+      spec:
+        accessModes: 
+          - {{ .Values.rpc.persistentVolumeClaim.accessModes }}
+        storageClassName: {{ .Values.rpc.persistentVolumeClaim.storageClass }}
+        resources:
+          requests:
+            storage: {{ .Values.rpc.persistentVolumeClaim.size }}

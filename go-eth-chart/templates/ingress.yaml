@@ -1,0 +1,34 @@
+{{- if .Values.ingress.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: geth-rpc-ingress
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- toYaml .Values.global.labels | nindent 4 }}
+  annotations:
+    {{- toYaml .Values.ingress.annotations_default | nindent 4 }}
+    {{- toYaml .Values.ingress.annotations | nindent 4 }}
+spec:
+  {{- if .Values.ingress.ingressClassName }}
+  ingressClassName: {{ .Values.ingress.ingressClassName }}
+  {{- end -}}
+  {{- if .Values.ingress.tls }}
+  tls:
+    - hosts:
+        - {{ .Values.ingress.tls | quote }}
+      secretName: tls-geth-rpc-ingress-secret
+  {{- end }}
+  rules:
+    - host: {{ .Values.ingress.host | quote }}
+      http:
+        paths:
+          - path: {{ .Values.ingress.path | default "/" }}
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: geth-rpc-endpoint
+                port:
+                  name: http
+{{- end }}

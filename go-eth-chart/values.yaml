@@ -1,0 +1,88 @@
+global:
+  image:
+    repository: ethereum/client-go
+    tag: v1.10.1
+    pullPolicy: IfNotPresent
+  namespace: "default"
+  labels: {}
+  ethParameters:
+    existingSecret: "" # If you want to create a secret outside of this chart, you need to set up all fields in the current block. If this exists, other parameters will be ignored.
+    NODE_KEY_HEX: "" # Check Readme
+    ENODE: "" # Check Readme
+    NETWORK_ID: "" # Some network_ID MUST align this value with /files/genesis.json "chainId": , Current value is 22222
+    ACCOUNT_PASSWORD: "" # Use strong password    
+
+
+rpc:
+  replicaCount: 1
+  service:
+    type: ClusterIP
+    port: 8545
+  persistentVolumeClaim:
+    accessModes: ReadWriteOnce
+    storageClass: "standard"
+    size: "10Gi"
+  resources:
+    limits:
+      cpu: "250m"
+      memory: "1Gi"
+    requests:
+      cpu: "250m"
+      memory: "256Mi"
+  nodeSelector: {}
+  tolerations: []
+  affinity: []
+
+mainer:
+  replicaCount: 1
+  persistentVolumeClaim:
+    accessModes: ReadWriteOnce
+    storageClass: "standard"
+    size: "10Gi"
+  resources:
+    limits:
+      cpu: "250m"
+      memory: "1Gi"
+    requests:
+      cpu: "250m"
+      memory: "256Mi"
+  nodeSelector: {}
+  tolerations: []
+  affinity: []
+
+bootnode:
+  replicaCount: 1
+  service:
+    type: ClusterIP
+    port: 30303
+  persistentVolumeClaim:
+    accessModes: ReadWriteOnce
+    storageClass: "standard"
+    size: "10Gi"
+  resources:
+    limits:
+      cpu: "250m"
+      memory: "1Gi"
+    requests:
+      cpu: "250m"
+      memory: "256Mi"
+  nodeSelector: {}
+  tolerations: []
+  affinity: []
+
+ingress:
+  enabled: false
+  ingressClassName: nginx
+  annotations: {} # This one will overwrite default values in case of conflict
+  annotations_default:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "10254"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "14400"
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      proxy_set_header Authorization $http_authorization;
+      proxy_pass_header Authorization;
+  tls: example.com
+  host: example.com
+  # path:
+  
