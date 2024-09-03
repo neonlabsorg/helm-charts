@@ -52,15 +52,15 @@ Example of `port-forward` usage. But you`re free to use ingress URL instead
 4. Check transactions by script
     4.1. Install  python and pip [instruction](https://linuxize.com/post/how-to-install-pip-on-ubuntu-20.04/)
     4.2. Install web3 lib and run script
-        ```bash
-        pip install web3
-        python3 
-        ```
+    ```bash
+    pip install web3
+    python3 
+    ```
         Result example:
-        ```bash
-        nonce: 0 # Increase each transaction
-        Transaction sent with hash: c5396480885689a45cc69d3d8102c2b5eb7bbff8ce3b013f8cf23e78addd99fa
-        ```
+    ```bash
+    nonce: 0 # Increase each transaction
+    Transaction sent with hash: c5396480885689a45cc69d3d8102c2b5eb7bbff8ce3b013f8cf23e78addd99fa
+    ```
 
 ### Prefounded accounts
     The are 2 predefined accounts
