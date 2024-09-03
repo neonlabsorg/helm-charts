@@ -76,7 +76,7 @@ validator:
   affinity: []
 
 ingress:
-  enabled: true
+  enabled: false
   ingressClassName: nginx
   annotations: 
     kubernetes.io/ingress.class: nginx

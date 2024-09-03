@@ -3,11 +3,8 @@ kind: StatefulSet
 metadata:
   name: beacon-chain
   namespace: {{ .Values.global.namespace }}
-  labels:    
-  {{- if .Values.global.labels }}
+  labels:
     {{- toYaml .Values.global.labels | nindent 4 }}
-  {{- end }}
-    app: beacon-chain
 spec:
   updateStrategy:
     type: RollingUpdate
