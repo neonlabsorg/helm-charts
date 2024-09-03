@@ -58,7 +58,7 @@ Example of `port-forward` usage. But you`re free to use ingress URL instead
     pip install web3
     python3 
     ```
-        Result example:
+    Result example:
     ```bash
     nonce: 0 # Increase each transaction
     Transaction sent with hash: c5396480885689a45cc69d3d8102c2b5eb7bbff8ce3b013f8cf23e78addd99fa
