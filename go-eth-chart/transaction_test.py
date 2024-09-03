@@ -1,7 +1,7 @@
 from web3 import Web3
 
-ETH_RPC_URL = 'http://localhost:8545'
-# ETH_RPC_URL = 'https://go-eth.neoninfra.xyz'
+# ETH_RPC_URL = 'http://localhost:8545'
+ETH_RPC_URL = 'https://go-eth.neoninfra.xyz'
 NETWORK_ID = 22222
 
 
@@ -18,8 +18,8 @@ if not web3.is_connected():
     raise Exception("Failed to connect to the Ethereum node")
 
 # Set sender account
-sender_address = ACCOUNT2_ADDRESS
-sender_private_key = ACCOUNT2_PRIVATE_KEY
+sender_address = ACCOUNT1_ADDRESS
+sender_private_key = ACCOUNT1_PRIVATE_KEY
 
 balance = web3.eth.get_balance(sender_address)
 print(f"Sender balance: {web3.from_wei(balance, 'ether')} ETH")

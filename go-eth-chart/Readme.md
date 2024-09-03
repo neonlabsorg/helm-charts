@@ -15,7 +15,13 @@ Source docker-compose [repo](https://github.com/Offchainlabs/eth-pos-devnet)
     ```bash
     helm install geth-chart . --values values.yaml
     ```
-4. Wait about 3 minutes after pod started. 
+4. Wait about 3 minutes after pod started.
+   Check logs
+   ```bash
+   k -n go-eth logs beacon-chain-0 -f
+
+   time="2024-09-03 09:43:30" level=info msg="1m37s until chain genesis" genesisStateRoot=e0341e3784b5dd6ffce5c79f06b0060ae993a1502453881fee3085e76abe6849 genesisTime="2024-09-03 09:45:08 +0000 UTC" genesisValidators=64 prefix=slotutil
+   ```
 #### Optional. Unlock mainer and rpc accounts before make transcations
 Example of `port-forward` usage. But you`re free to use ingress URL instead
 1. Port forward. !!! Use right namespace `go-eth` in my case
