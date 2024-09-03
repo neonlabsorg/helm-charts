@@ -1,7 +1,7 @@
 from web3 import Web3
 
-# ETH_RPC_URL = 'http://localhost:8545'
-ETH_RPC_URL = 'https://go-eth.neoninfra.xyz'
+ETH_RPC_URL = 'http://localhost:8545'
+# ETH_RPC_URL = 'https://go-eth.neoninfra.xyz'
 NETWORK_ID = 22222
 
 
