@@ -3,7 +3,7 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: geth-rpc-ingress
+  name: geth-ingress
   namespace: {{ .Values.global.namespace }}
   labels:
     {{- toYaml .Values.global.labels | nindent 4 }}
@@ -18,7 +18,7 @@ spec:
   tls:
     - hosts:
         - {{ .Values.ingress.tls | quote }}
-      secretName: tls-geth-rpc-ingress-secret
+      secretName: tls-geth-ingress-secret
   {{- end }}
   rules:
     - host: {{ .Values.ingress.host | quote }}
@@ -28,7 +28,7 @@ spec:
             pathType: ImplementationSpecific
             backend:
               service:
-                name: geth-rpc-endpoint
+                name: geth-svc
                 port:
-                  name: http
+                  name: rpc-port
 {{- end }}

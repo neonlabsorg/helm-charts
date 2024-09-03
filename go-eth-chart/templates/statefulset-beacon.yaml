@@ -1,0 +1,138 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: beacon-chain
+  namespace: {{ .Values.global.namespace }}
+  labels:    
+  {{- if .Values.global.labels }}
+    {{- toYaml .Values.global.labels | nindent 4 }}
+  {{- end }}
+    app: beacon-chain
+spec:
+  updateStrategy:
+    type: RollingUpdate
+  serviceName: beacon-chain
+  replicas: {{ .Values.beacon_node.replicaCount }}
+  selector:
+    matchLabels:
+      app: beacon-chain
+  template:
+    metadata:
+      labels:
+        app: beacon-chain
+    spec:
+      serviceAccountName: create-configmap
+      initContainers:
+        - name: create-beacon-chain-genesis-files
+          image: "{{ .Values.beacon_node.prysmctl.image.repository }}:{{ .Values.beacon_node.prysmctl.image.tag }}"
+          command:
+          - /bin/bash
+          - -c
+          - |
+            if [ ! -f /beacondata/genesis.ssz ]; then
+              /prysmctl testnet generate-genesis \
+              --fork=capella \
+              --num-validators=64 \
+              --genesis-time-delay=180 \
+              --output-ssz=/beacondata/genesis.ssz \
+              --chain-config-file=/config/consensus-config.yml \
+              --geth-genesis-json-in=/config/genesis.json \
+              --geth-genesis-json-out=/beacondata/genesis.json
+            else
+              echo "genesis.ssz already exists, skipping generation"
+            fi
+          volumeMounts:
+            - name: config-volume
+              mountPath: /config
+            - name: beacondata
+              mountPath: /beacondata
+        - name: create-configmap-generated-genesis-config
+          image: bitnami/kubectl:latest
+          command:
+          - /bin/sh
+          - -c
+          - |
+            while [ ! -f /beacondata/genesis.json ]; do 
+              echo "waiting for file /beacondata/genesis.json"; 
+              sleep 2; 
+            done
+            kubectl -n {{ .Values.global.namespace }} create configmap generated-genesis-config --from-file=genesis.json=/beacondata/genesis.json --dry-run=client -o yaml | kubectl apply -f -
+          volumeMounts:
+            - name: beacondata
+              mountPath: /beacondata
+      containers:
+        - name: beacon-chain
+          image: "{{ .Values.beacon_node.image.repository }}:{{ .Values.beacon_node.image.tag }}"
+          args:
+            - "--datadir=/beacondata"
+            - "--min-sync-peers=0"
+            - "--genesis-state=/beacondata/genesis.ssz"
+            - "--bootstrap-node="
+            - "--interop-eth1data-votes"
+            - "--chain-config-file=/config/consensus-config.yml"
+            - "--contract-deployment-block=0"
+            - "--chain-id=$(NETWORK_ID)"
+            - "--rpc-host=0.0.0.0"
+            - "--grpc-gateway-host=0.0.0.0" 
+            - "--execution-endpoint=http://geth-svc.{{ .Values.global.namespace }}.svc.cluster.local:8551"
+            - "--accept-terms-of-use" 
+            - "--jwt-secret=/jwt/jwtsecret"
+            - "--suggested-fee-recipient=0x123463a4b065722e99115d6c222f267d9cabb524"
+            - "--minimum-peers-per-subnet=0"
+            - "--enable-debug-rpc-endpoints"
+            - "--force-clear-db"
+          ports:
+            - containerPort: 4000
+              name: port4000
+            - containerPort: 3500
+              name: port3500
+            - containerPort: 8080
+              name: port8080
+            - containerPort: 6060
+              name: port6060
+            - containerPort: 9090
+              name: port9090
+          envFrom:
+            - secretRef:
+                name: {{ .Values.global.ethParameters.existingSecret | default "geth-secret" }}
+          volumeMounts:
+            - name: beacondata
+              mountPath: /beacondata
+            - name: config-volume
+              mountPath: /config
+            - name: jwtsecret
+              mountPath: /jwt
+          resources:
+            {{- toYaml .Values.beacon_node.resources | nindent 12 }}
+      volumes:
+        - name: config-volume
+          configMap:
+            name: geth-config
+        - name: jwtsecret
+          secret:
+            secretName: {{ .Values.global.ethParameters.existingSecret | default "geth-secret" }}
+            items:
+              - key: JWTSECRET
+                path: jwtsecret
+      {{- if .Values.beacon_node.nodeSelector }}
+      nodeSelector:
+        {{- toYaml .Values.beacon_node.nodeSelector | nindent 8 }}
+      {{- end }}
+      {{- if .Values.beacon_node.affinity }}
+      affinity:
+        {{- toYaml .Values.beacon_node.affinity | nindent 8 }}
+      {{- end }}
+      {{- if .Values.beacon_node.tolerations }}
+      tolerations:
+        {{- toYaml .Values.beacon_node.tolerations | nindent 8 }}
+      {{- end }}
+  volumeClaimTemplates:
+    - metadata:
+        name: beacondata
+      spec:
+        accessModes:
+          - {{ .Values.beacon_node.persistentVolumeClaim.accessModes }}
+        storageClassName: {{ .Values.beacon_node.persistentVolumeClaim.storageClass }}
+        resources:
+          requests:
+            storage: {{ .Values.beacon_node.persistentVolumeClaim.size }}

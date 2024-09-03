@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: geth-svc
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- toYaml .Values.global.labels | nindent 4 }}
+spec:
+  selector:
+    app: geth
+  ports:
+    - protocol: TCP
+      port: 8551
+      targetPort: 8551
+      name: http-port
+    - protocol: TCP
+      port: 8545
+      targetPort: 8545
+      name: rpc-port
+    - protocol: TCP
+      port: 8546
+      targetPort: 8546
+      name: ws-port

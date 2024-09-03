@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: validator
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- toYaml .Values.global.labels | nindent 4 }}
+spec:
+  updateStrategy:
+    type: RollingUpdate
+  serviceName: validator
+  replicas: {{ .Values.validator.replicaCount }}
+  selector:
+    matchLabels:
+      app: validator
+  template:
+    metadata:
+      labels:
+        app: validator
+    spec:
+      initContainers:        
+        - name: wait-for-beacon-chain
+          image: busybox
+          command:
+          - /bin/sh
+          - -c
+          - |
+            while ! nc -zvw10 beacon-chain.{{ .Values.global.namespace }}.svc.cluster.local 4000; do
+              echo "Waiting for beacon-chain.{{ .Values.global.namespace }}.svc.cluster.local:4000 to be available"
+              sleep 2
+            done
+      containers:
+        - name: validator
+          image: "{{ .Values.validator.image.repository }}:{{ .Values.validator.image.tag }}"
+          args:
+            - "--beacon-rpc-provider=beacon-chain.{{ .Values.global.namespace }}.svc.cluster.local:4000"
+            - "--datadir=/validatordata"
+            - "--accept-terms-of-use"
+            - "--interop-num-validators=64"
+            - "--interop-start-index=0"
+            - "--chain-config-file=/config/consensus-config.yml"
+            - "--force-clear-db"
+          volumeMounts:
+            - name: validatordata
+              mountPath: /validatordata
+            - name: config-volume
+              mountPath: /config
+          resources:
+            {{- toYaml .Values.validator.resources | nindent 12 }}
+      volumes:
+        - name: config-volume
+          configMap:
+            name: geth-config
+      {{- if .Values.validator.nodeSelector }}
+      nodeSelector:
+        {{- toYaml .Values.validator.nodeSelector | nindent 8 }}
+      {{- end }}
+      {{- if .Values.validator.affinity }}
+      affinity:
+        {{- toYaml .Values.validator.affinity | nindent 8 }}
+      {{- end }}
+      {{- if .Values.validator.tolerations }}
+      tolerations:
+        {{- toYaml .Values.validator.tolerations | nindent 8 }}
+      {{- end }}
+  volumeClaimTemplates:
+    - metadata:
+        name: validatordata
+      spec:
+        accessModes:
+          - {{ .Values.validator.persistentVolumeClaim.accessModes }}
+        storageClassName: {{ .Values.validator.persistentVolumeClaim.storageClass }}
+        resources:
+          requests:
+            storage: {{ .Values.validator.persistentVolumeClaim.size }}

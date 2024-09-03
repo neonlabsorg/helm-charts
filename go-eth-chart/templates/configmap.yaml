@@ -7,3 +7,5 @@ metadata:
     {{- toYaml .Values.global.labels | nindent 4 }}
 data:
   genesis.json: {{ tpl (.Files.Get "files/genesis.json") . | quote }}
+  consensus-config.yml: {{ tpl (.Files.Get "files/consensus-config.yml") . | quote }}
+  UTC--2022-08-19T17-38-31.257380510Z--123463a4b065722e99115d6c222f267d9cabb524: {{ tpl (.Files.Get "files/UTC--2022-08-19T17-38-31.257380510Z--123463a4b065722e99115d6c222f267d9cabb524") . | quote }}

@@ -1,0 +1,137 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: geth
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- toYaml .Values.global.labels | nindent 4 }}
+spec:
+  updateStrategy:
+    type: RollingUpdate
+  serviceName: geth
+  replicas: {{ .Values.geth.replicaCount }}
+  selector:
+    matchLabels:
+      app: geth
+  template:
+    metadata:
+      labels:
+        app: geth
+    spec:
+      initContainers:
+        - name: wait-for-beacon-chain
+          image: busybox
+          command:
+          - /bin/sh
+          - -c
+          - |
+            while ! nc -zvw10 beacon-chain.{{ .Values.global.namespace }}.svc.cluster.local 4000; do
+              echo "Waiting for beacon-chain.{{ .Values.global.namespace }}.svc.cluster.local:4000 to be available"
+              sleep 2
+            done
+        - name: init-geth
+          image: "{{ .Values.geth.image.repository }}:{{ .Values.geth.image.tag }}"
+          command: ['sh', '-c', '
+            if [ -f /geth_data/go-eth-initialized ]; then
+              echo "go-ethereum has already been initialized";
+            elif echo "Initializing go-ethereum..." \
+              && geth init --datadir=/geth_data /generated-genesis-config/genesis.json && echo \
+              && touch /geth_data/go-eth-initialized; then
+              echo "Ethereum initialization process completed successfully";
+            else
+              echo "Ethereum initialization process failed";
+              exit 1;
+            fi
+
+            echo "Creating /geth_data/keystore folder if it not exist" \
+            && mkdir -p /geth_data/keystore && echo \
+            
+            && echo "Copying keys to /geth_data/keystore folder" \
+            && cp -n /config/UTC--* /geth_data/keystore/ && echo         
+          ']
+          volumeMounts:
+            - name: geth-data
+              mountPath: /geth_data
+            - name: config-volume
+              mountPath: /config
+            - name: generated-genesis-config
+              mountPath: /generated-genesis-config
+            - name: secret-data
+              mountPath: /secret_data
+      containers:
+        - name: geth
+          image: "{{ .Values.geth.image.repository }}:{{ .Values.geth.image.tag }}"
+          args:
+            - "--http"
+            - "--http.api=eth,net,web3,debug,personal,miner"
+            - "--http.addr=0.0.0.0"
+            - "--http.corsdomain=*"
+            - "--http.vhosts=*"
+            - "--ws"
+            - "--ws.api=eth,net,web3"
+            - "--ws.addr=0.0.0.0"
+            - "--ws.origins=*"
+            - "--authrpc.vhosts=*"
+            - "--authrpc.addr=0.0.0.0"
+            - "--authrpc.jwtsecret=/secret_data/jwtsecret"
+            - "--datadir=/geth_data"
+            - "--allow-insecure-unlock"
+            - "--unlock=$(ACCOUNT_ADDRESS)"
+            - "--password=/secret_data/account_pwd"
+            - "--cache.preimages=true"
+            - "--nodiscover"
+            - "--syncmode=full"
+          ports:
+            - containerPort: 8551
+              name: http-port
+            - containerPort: 8545
+              name: rpc-port
+            - containerPort: 8546
+              name: ws-port
+          envFrom:
+            - secretRef:
+                name: {{ .Values.global.ethParameters.existingSecret | default "geth-secret" }}
+          volumeMounts:
+            - name: geth-data
+              mountPath: /geth_data
+            - name: secret-data
+              mountPath: /secret_data
+          resources:
+            {{- toYaml .Values.geth.resources | nindent 12 }}
+      volumes:
+        - name: config-volume
+          configMap:
+            name: geth-config
+        - name: generated-genesis-config
+          configMap:
+            name: generated-genesis-config
+        - name: secret-data
+          secret:
+            secretName: {{ .Values.global.ethParameters.existingSecret | default "geth-secret" }}
+            items:
+              - key: JWTSECRET
+                path: jwtsecret
+              - key: ACCOUNT_PASSWORD
+                path: account_pwd
+      {{- if .Values.geth.nodeSelector }}
+      nodeSelector:
+        {{- toYaml .Values.geth.nodeSelector | nindent 8 }}
+      {{- end }}
+      {{- if .Values.geth.affinity }}
+      affinity:
+        {{- toYaml .Values.geth.affinity | nindent 8 }}
+      {{- end }}
+      {{- if .Values.geth.tolerations }}
+      tolerations:
+        {{- toYaml .Values.geth.tolerations | nindent 8 }}
+      {{- end }}
+  volumeClaimTemplates:
+    - metadata:
+        name: geth-data
+      spec:
+        accessModes:
+          - {{ .Values.geth.persistentVolumeClaim.accessModes }}
+        storageClassName: {{ .Values.geth.persistentVolumeClaim.storageClass }}
+        resources:
+          requests:
+            storage: {{ .Values.geth.persistentVolumeClaim.size }}
