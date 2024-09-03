@@ -50,7 +50,9 @@ Example of `port-forward` usage. But you`re free to use ingress URL instead
     }'
     ```
 4. Check transactions by script
+
     4.1. Install  python and pip [instruction](https://linuxize.com/post/how-to-install-pip-on-ubuntu-20.04/)
+
     4.2. Install web3 lib and run script
     ```bash
     pip install web3
