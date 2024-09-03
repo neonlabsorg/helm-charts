@@ -65,7 +65,7 @@ Example of `port-forward` usage. But you`re free to use ingress URL instead
     ```
 
 ### Prefounded accounts
-    The are 2 predefined accounts
+The are 2 predefined accounts
     ```
     Account 1 Private Key: 0x2e0834786285daccd064ca17f1654f67b4aef298acbb82cef9ec422fb4975622
     Account 1 Address: 0x123463a4b065722e99115d6c222f267d9cabb524
@@ -73,13 +73,13 @@ Example of `port-forward` usage. But you`re free to use ingress URL instead
     Account 2 Address: 0x14dc79964da2c08b23698b3d3cc7ca32193d9955
     ```
 
-    If you want to create new accounts `gen_eth_accounts.py`
+If you want to create new accounts `gen_eth_accounts.py`
     ```bash
     pip install web3
     python gen_eth_accounts.py
     ```
-    and then update `files/genesis.json` accordingly.
+and then update `files/genesis.json` accordingly.
 
-    If you want to change predefined balances update `files/genesis.json` accordingly and reinstall this chart from scratch (Do not forget to remove PVC)
+If you want to change predefined balances update `files/genesis.json` accordingly and reinstall this chart from scratch (Do not forget to remove PVC)
 
 More examples of usage can be found in the instructions provided at the top.
