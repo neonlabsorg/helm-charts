@@ -66,6 +66,7 @@ Example of `port-forward` usage. But you`re free to use ingress URL instead
 
 ### Prefounded accounts
 The are 2 predefined accounts
+
     ```
     Account 1 Private Key: 0x2e0834786285daccd064ca17f1654f67b4aef298acbb82cef9ec422fb4975622
     Account 1 Address: 0x123463a4b065722e99115d6c222f267d9cabb524
@@ -74,6 +75,7 @@ The are 2 predefined accounts
     ```
 
 If you want to create new accounts `gen_eth_accounts.py`
+
     ```bash
     pip install web3
     python gen_eth_accounts.py
